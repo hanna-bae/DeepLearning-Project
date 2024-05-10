@@ -1,0 +1,88 @@
+1a. Unzip the contents of the yolov5-htp-docker.zip.
+   The directory should look as follows:
+    |- guide.txt
+    |- yolov5-htp-docker
+        |- output
+        |- pretrained-weights
+                |- House
+                    |- exp
+                        |- weights
+                            |- best.pt
+                            |- last.pt 
+                    ...
+                |- PersonF
+                    ... 
+                |- PersonM
+                    ...
+                |- Tree
+                    ...
+            |- dataset
+                |- NIa_yolo.zip
+
+    The pretrained weights are the weights trained using yolov5 on first few hundered HTP samples. this path to 'pretrained-weights' is <path-to-weights> used for docker mount later.
+
+1b. Unzip NIa_yolo.zip in the 'dataset' folder. It contains all the text files and images in yolov5 format. (train, val and test)
+    > cd dataset
+    > unzip NIa_yolo.zip 
+    |- NIa_yolo
+        |- House
+            |- test
+                |- images
+                |- labels
+            |- train
+                |- images
+                |- labels
+            |- val
+                |- images
+                |- labels
+            |- data.yaml
+        |- PersonF
+            ... 
+        |- PersonM
+            ...
+        |- Tree
+            ...
+    This 'dataset' folder path is the <path-to-dataset> used for docker mount later.
+
+1c. The empty 'output' folder is the <path-to-yolov5-output> used for docker mount later.
+
+2. Follow the steps in the below link NVIDIA-DOCKER and DOCKER in your Linux system.
+https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker
+
+3.  2 ways to do load the docker image.
+    Extract and load the image file from tar.gz file
+    > mkdir mayfarmdocker
+    > cd mayfarmdocker
+    > tar -xf mayfarm_htp.tar.gz
+    > tar -cC 'mayfarmdocker' . | docker load
+    == OR == 
+    (optional) visit https://hub.docker.com/r/ultralytics/yolov5 for official yolov5 image and pull it using 
+    > docker pull ultralytics/yolov5
+
+4. Run the docker image by using the following command : 
+
+    > sudo docker run --ipc=host -it -v <path-to-dataset>:/usr/src/datasets -v <path-to-weights>:/usr/src/pretrained-weights -v <path-to-yolov5-output>:/usr/src/tta_test --gpus all ultralytics/yolov5:latest
+    for example in my PC the command looks like this when replaced with the correct <paths> : 
+    > sudo docker run --ipc=host -it -v /data/dataset:/usr/src/datasets -v /data/pretrained-weights:/usr/src/pretrained-weights -v /home/xxxx/yolov5-htp-docker/output:/usr/src/tta_test --gpus all ultralytics/yolov5:latest
+
+5. In docker, the yolov5 code is at /usr/src/app. run the following codes to use val.py and call 'test' task for generating mAP graphs. 
+    You can see the results in the CLI as well as it will be saved in the <path-to-yolov5-output>
+    > cd /usr/src/app
+    # house
+    > python val.py --task test --imgsz 1280 --weights /usr/src/pretrained-weights/house_10062022-x/exp/weights/best.pt --data /usr/src/datasets/NIa_yolo/House/data.yaml --project /usr/src/tta_test --name HouseTest
+    # tree
+    > python val.py --task test --imgsz 1280 --weights /usr/src/pretrained-weights/tree_10072022-x/exp/weights/best.pt --data /usr/src/datasets/NIa_yolo/Tree/data.yaml --project /usr/src/tta_test --name TreeTest
+    # personF
+    > python val.py --task test --imgsz 1280 --weights /usr/src/pretrained-weights/personf_10072022-x/exp/weights/best.pt --data /usr/src/datasets/NIa_yolo/PersonF/data.yaml --project /usr/src/tta_test --name PersonFTest
+    # personM
+    > python val.py --task test --imgsz 1280 --weights /usr/src/pretrained-weights/personm_10062022-x/exp/weights/best.pt --data /usr/src/datasets/NIa_yolo/PersonM/data.yaml --project /usr/src/tta_test --name PersonMTest
+
+6. If sucessfully run, the following directories and files will be created.
+    ..
+    |- yolov5-htp-docker
+        |- output
+            |- HouseTest
+                |- ..
+            |- PersonFTest
+            |- PersonMTest
+            |- TreeTest
