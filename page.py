@@ -9,6 +9,7 @@ import os
 from analyze_house import analyze_house
 from analyze_tree import analyze_tree 
 from analyze_person import analyze_person
+import pandas as pd
 
 def save_uploaded_file(uploaded_file):
     try:
@@ -149,10 +150,28 @@ if 'result_image_path' in st.session_state:
             # 심리 분석 결과 출력
             st.markdown('<p style="text-align: center; font-weight: bold;">심리 분석 결과</p>', unsafe_allow_html=True)
             if htp == 'House':
+                myData = {
+                    'Category': ['fantasy(공상적)', 'social_withdrawal(대인관계 회피)', 'doubtful(편집증적 경향)', 'dependency(의존성)', 'home_unsatisfaction(가정환경 불만족)'],
+                    'Values': [score[0], score[1], score[2], score[3], score[4]]
+                }
+                df = pd.DataFrame(data=myData)
+                st.bar_chart(df.set_index('Category'))
                 st.markdown('fantasy(공상적), social_withdrawal(대인관계 회피), doubtful(편집증적 경향), dependency(의존성), home_unsatisfaction(가정환경 불만족)')
             elif htp == 'Tree':
+                myData = {
+                    'Category': ['fantasy(공상적)', 'social_withdrawal(대인관계 회피)', 'doubtful(편집증적 경향)', 'self_confusion(자아혼란, 불안정)', 'low_will_to_live(낮은 삶의 의지)'],
+                    'Values': [score[0], score[1], score[2], score[3], score[4]]
+                }
+                df = pd.DataFrame(data=myData)
+                st.bar_chart(df.set_index('Category'))
                 st.markdown('fantasy(공상적), social_withdrawal(대인관계 회피), doubtful(편집증적 경향), self_confusion(자아혼란, 불안정), low_will_to_live(낮은 삶의 의지)')
             else:
+                myData = {
+                'Category': ['aggressive', 'depressed', 'maladaptation', 'nervous'],
+                'Values': [score[0], score[1], score[2], score[3]]
+            }
+                df = pd.DataFrame(data=myData)
+                st.bar_chart(df.set_index('Category'))
                 st.markdown(
                 'aggressive(공격적인, 충동적인, 욕심 많은), depressed(관계 회피적인, 내성적인, 우울한), maladaptive(사회에 적응하지 못한, 열등감, 내적 갈등이 심한), nervous(예민한, 불안한)') 
             st.markdown(f'점수: {score}')
