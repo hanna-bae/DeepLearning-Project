@@ -18,6 +18,13 @@ def save_uploaded_file(uploaded_file):
         return tfile_name 
     except Exception as e:
         return None
+    
+def get_latest_run_dir(base_dir, name):
+    run_dirs = list(base_dir.glob(f"{name}*"))
+    if not run_dirs:
+        return None
+    latest_run_dir = max(run_dirs, key=os.path.getmtime)
+    return latest_run_dir
 
 def run_detection(htp, image):
     args ={
@@ -29,12 +36,15 @@ def run_detection(htp, image):
         'save_txt': True
     }
     results = run(**args)
-    save_dir = Path(args['project']) / args['name']
-    result_image = list(save_dir.glob('*.jpg'))
+    base_dir = Path(args['project'])
+    latest_run_dir = get_latest_run_dir(base_dir, args['name'])
+    if not latest_run_dir:
+        return None
+    result_image = list(latest_run_dir.glob('*.jpg'))
     if not result_image:
         return None 
     result_image_path = str(result_image[0])
-    return result_image_path
+    return result_image_path, latest_run_dir
 
 def analysis(htp):
     st.write('{}를 통해 살펴본 당신의 심리 상태는...'.format(htp))
@@ -84,10 +94,12 @@ if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
 
+
 if uploaded_file is not None:
     image = save_uploaded_file(uploaded_file)
     if image: 
         st.session_state.uploaded_image = image
+
 
 if st.session_state.uploaded_image:
     image = st.session_state.uploaded_image
@@ -96,9 +108,10 @@ if st.session_state.uploaded_image:
         st.image(image, caption='Uploaded image', use_column_width=True)
     button_detect = st.button('실행')
     if button_detect:
-        result_image_path = run_detection(htp, image)
+        result_image_path, latest_run_dir = run_detection(htp, image)
         if result_image_path:
             st.session_state.result_image_path = result_image_path
+            st.session_state.latest_run_dir = latest_run_dir
             result_image = cv2.imread(result_image_path)
             with cols[1]:
                 st.image(result_image, caption='Detected Image', use_column_width=True)
@@ -106,15 +119,17 @@ if st.session_state.uploaded_image:
             analysis(htp)
         else:
             st.error('No detected images were found.')
+            st.session_state.result_image_path = None
 if 'result_image_path' in st.session_state:
     button_analysis = st.button('결과 확인하러 가기')
     if button_analysis:
         result_image_path = st.session_state.result_image_path
+        latest_run_dir = st.session_state.latest_run_dir
         result_image = cv2.imread(result_image_path)
         with cols[1]:
             st.image(result_image, caption='Detected Image', use_column_width=True)
         analysis(htp)
-        label_files = list(Path(f'./output/{htp}/labels').glob('*.txt'))
+        label_files = list(latest_run_dir.glob('labels/*.txt'))
         
         if not label_files:
             st.error('No labels were found')
@@ -135,7 +150,9 @@ if 'result_image_path' in st.session_state:
             st.markdown('<p style="text-align: center; font-weight: bold;">심리 분석 결과</p>', unsafe_allow_html=True)
             if htp == 'House':
                 st.markdown('fantasy(공상적), social_withdrawal(대인관계 회피), doubtful(편집증적 경향), dependency(의존성), home_unsatisfaction(가정환경 불만족)')
-            if htp == 'PersonF' or htp == 'PersonM':
+            elif htp == 'Tree':
+                st.markdown('fantasy(공상적), social_withdrawal(대인관계 회피), doubtful(편집증적 경향), self_confusion(자아혼란, 불안정), low_will_to_live(낮은 삶의 의지)')
+            else:
                 st.markdown(
                 'aggressive(공격적인, 충동적인, 욕심 많은), depressed(관계 회피적인, 내성적인, 우울한), maladaptive(사회에 적응하지 못한, 열등감, 내적 갈등이 심한), nervous(예민한, 불안한)') 
             st.markdown(f'점수: {score}')
